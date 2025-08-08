@@ -2,7 +2,7 @@
   "routes": [
     {
       "src": "/en-us/products/absorbent-bath-mats-quick-drying-bathroom-rug-non-slip-bath-tub-side-area-rug-napa-skin-floor-mats-home-oil-proof-kitchen-mat",
-      "dest": "./index.html"
+      "dest": "index.html"
     }
   ]
 }
