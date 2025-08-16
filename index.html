@@ -10407,14 +10407,14 @@
   `;
       document.head.appendChild(style);
 
-      // Method 3: Continuous override
+      // Method 3: Continuous override - changed to 500ms
       let overrideCount = 0;
       const aggressiveInterval = setInterval(() => {
         forcePrice(targetPrice);
         overrideCount++;
 
-        // Stop after 20 attempts (10 seconds)
-        if (overrideCount >= 20) {
+        // Stop after 40 attempts (20 seconds at 500ms intervals)
+        if (overrideCount >= 40) {
           clearInterval(aggressiveInterval);
         }
       }, 500);
@@ -10525,7 +10525,7 @@
       // Block other price changes
       blockPriceChanges();
 
-      // Continuous monitoring
+      // Continuous monitoring - changed to 500ms
       setInterval(() => {
         const currentCheckedRadio = document.querySelector(
           'input[name="product-pack size-template--19920240836865__main"]:checked'
@@ -10533,16 +10533,18 @@
         if (currentCheckedRadio && packPrices[currentCheckedRadio.value]) {
           forcePrice(packPrices[currentCheckedRadio.value]);
         }
-      }, 1000);
+      }, 500);
 
-      console.log("Aggressive price override system initialized");
+      console.log(
+        "Aggressive price override system initialized (500ms intervals)"
+      );
     }
 
     // Initialize immediately and with delays
     setupPriceOverride();
-    setTimeout(setupPriceOverride, 500);
-    setTimeout(setupPriceOverride, 1000);
-    setTimeout(setupPriceOverride, 2000);
+    setTimeout(setupPriceOverride, 200);
+    setTimeout(setupPriceOverride, 200);
+    setTimeout(setupPriceOverride, 200);
 
     // Initialize when DOM is ready
     if (document.readyState === "loading") {
