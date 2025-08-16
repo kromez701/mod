@@ -10320,14 +10320,17 @@
         ".product-price span:first-child",
         ".money",
       ];
+      const comparePrice = document.querySelector(".product-price--compare");
+      console.log("compare prices", comparePrice);
+      if (comparePrice) {
+        comparePrice.textContent = "£102.00";
+        comparePrice.innerHTML = "£102.00";
+      }
+      console.log(comparePrice.innerHTML);
 
       priceSelectors.forEach((selector) => {
         const elements = document.querySelectorAll(selector);
-        const comparePrice = document.querySelector(".product-price--compare");
-        if (comparePrice) {
-          comparePrice.textContent = "£102.00";
-          comparePrice.innerHTML = "£102.00";
-        }
+
         elements.forEach((element) => {
           if (
             element.textContent.includes("£") ||
