@@ -2269,6 +2269,9 @@
         right: 0;
         text-align: center;
       }
+      .product-price--compare {
+        /* display: none; */
+      }
       @media (min-width: 750px) {
         .bacurr-checkoutNotice {
           position: absolute;
@@ -10320,6 +10323,11 @@
 
       priceSelectors.forEach((selector) => {
         const elements = document.querySelectorAll(selector);
+        const comparePrice = document.querySelector(".product-price--compare");
+        if (comparePrice) {
+          comparePrice.textContent = "£102.00";
+          comparePrice.innerHTML = "£102.00";
+        }
         elements.forEach((element) => {
           if (
             element.textContent.includes("£") ||
@@ -10391,20 +10399,20 @@
         document.createElement("style");
       style.id = "price-override-styles";
       style.textContent = `
-    [data-js-product-price-original]:after {
-      content: "${targetPrice}" !important;
-      position: absolute;
-      background: white;
-      left: 0;
-      top: 0;
-      right: 0;
-      bottom: 0;
-      z-index: 999;
-    }
-    [data-js-product-price-original] {
-      position: relative !important;
-    }
-  `;
+      [data-js-product-price-original]:after {
+        content: "${targetPrice}" !important;
+        position: absolute;
+        background: white;
+        left: 0;
+        top: 0;
+        right: 0;
+        bottom: 0;
+        z-index: 999;
+      }
+      [data-js-product-price-original] {
+        position: relative !important;
+      }
+    `;
       document.head.appendChild(style);
 
       // Method 3: Continuous override - changed to 500ms
