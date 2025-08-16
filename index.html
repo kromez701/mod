@@ -10302,7 +10302,7 @@
     window.selectRegularVariant = selectRegularVariant;
   </script>
 
-  <script>
+  <!-- <script>
     // Price configuration for different pack sizes
     const packPrices = {
       Single: "£29.99",
@@ -10556,6 +10556,304 @@
     setTimeout(setupPriceOverride, 200);
     setTimeout(setupPriceOverride, 200);
     setTimeout(setupPriceOverride, 200);
+
+    // Initialize when DOM is ready
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", setupPriceOverride);
+    }
+
+    // Export for manual testing
+    window.setupPriceOverride = setupPriceOverride;
+    window.aggressivelySetPrice = aggressivelySetPrice;
+    window.forcePrice = forcePrice;
+  </script> -->
+
+  <script>
+    // Price configuration for different pack sizes
+    const packPrices = {
+      Single: "£29.99",
+      "2 Pack | Free Shipping (Most Popular)": "£59.98",
+      "3 Pack | 15% OFF (Best Deal)": "£89.97",
+    };
+
+    // Force price display function
+    function forcePrice(price) {
+      // Find all possible price selectors
+      const priceSelectors = [
+        "[data-js-product-price-original]",
+        ".product-price--original",
+        ".pps",
+        ".product-price span:first-child",
+        ".money",
+      ];
+
+      priceSelectors.forEach((selector) => {
+        const elements = document.querySelectorAll(selector);
+        elements.forEach((element) => {
+          if (
+            element.textContent.includes("£") ||
+            element.textContent.includes("$")
+          ) {
+            element.textContent = price;
+            element.innerHTML = price;
+
+            // Make the change more permanent by setting multiple attributes
+            element.setAttribute("data-original-price", price);
+            element.style.setProperty(
+              "--custom-price",
+              `"${price}"`,
+              "important"
+            );
+          }
+        });
+      });
+
+      // Always force compare price to £102.00
+      const comparePrice = document.querySelector(".product-price--compare");
+      console.log("compare prices", comparePrice);
+      if (comparePrice) {
+        comparePrice.textContent = "£102.00";
+        comparePrice.innerHTML = "£102.00";
+        comparePrice.setAttribute("data-original-price", "£102.00");
+        comparePrice.style.setProperty(
+          "--custom-price",
+          '"£102.00"',
+          "important"
+        );
+      }
+    }
+
+    // Intercept fetch requests to override price data
+    const originalFetch = window.fetch;
+    window.fetch = function (...args) {
+      return originalFetch.apply(this, args).then((response) => {
+        // Clone the response to read it without consuming the original
+        const responseClone = response.clone();
+
+        // Check if this might be a product/variant request
+        if (
+          args[0] &&
+          typeof args[0] === "string" &&
+          (args[0].includes("products") ||
+            args[0].includes("variants") ||
+            args[0].includes(".json"))
+        ) {
+          responseClone
+            .json()
+            .then((data) => {
+              // Small delay to let the theme process the response first
+              setTimeout(() => {
+                const checkedRadio = document.querySelector(
+                  'input[name="product-pack size-template--19920240836865__main"]:checked'
+                );
+                if (checkedRadio && packPrices[checkedRadio.value]) {
+                  forcePrice(packPrices[checkedRadio.value]);
+                }
+              }, 100);
+            })
+            .catch(() => {
+              // Not JSON, ignore
+            });
+        }
+
+        return response;
+      });
+    };
+
+    // Aggressive price override using multiple methods
+    function aggressivelySetPrice(selectedValue) {
+      const targetPrice = packPrices[selectedValue];
+      if (!targetPrice) return;
+
+      // Method 1: Direct DOM manipulation
+      forcePrice(targetPrice);
+
+      // Method 2: Use CSS to override content
+      const style =
+        document.getElementById("price-override-styles") ||
+        document.createElement("style");
+      style.id = "price-override-styles";
+      style.textContent = `
+    [data-js-product-price-original]:after {
+      content: "${targetPrice}" !important;
+      position: absolute;
+      background: white;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 999;
+    }
+    [data-js-product-price-original] {
+      position: relative !important;
+    }
+    .product-price--compare:after {
+      content: "£102.00" !important;
+      position: absolute;
+      background: white;
+      left: 0;
+      top: 0;
+      right: 0;
+      bottom: 0;
+      z-index: 999;
+    }
+    .product-price--compare {
+      position: relative !important;
+    }
+  `;
+      document.head.appendChild(style);
+
+      // Method 3: Continuous override - changed to 500ms
+      let overrideCount = 0;
+      const aggressiveInterval = setInterval(() => {
+        forcePrice(targetPrice);
+        overrideCount++;
+
+        // Stop after 40 attempts (20 seconds at 500ms intervals)
+        if (overrideCount >= 40) {
+          clearInterval(aggressiveInterval);
+        }
+      }, 500);
+
+      console.log(
+        `Aggressively setting price to ${targetPrice} for ${selectedValue}`
+      );
+    }
+
+    // Override any JavaScript that might be changing prices
+    function blockPriceChanges() {
+      // Override common Shopify functions that update prices
+      if (window.Shopify && window.Shopify.formatMoney) {
+        const originalFormatMoney = window.Shopify.formatMoney;
+        window.Shopify.formatMoney = function (cents, format) {
+          const checkedRadio = document.querySelector(
+            'input[name="product-pack size-template--19920240836865__main"]:checked'
+          );
+          if (checkedRadio && packPrices[checkedRadio.value]) {
+            return packPrices[checkedRadio.value];
+          }
+          return originalFormatMoney.call(this, cents, format);
+        };
+      }
+
+      // Override jQuery if it exists
+      if (window.jQuery) {
+        const originalHtml = window.jQuery.fn.html;
+        const originalText = window.jQuery.fn.text;
+
+        window.jQuery.fn.html = function (value) {
+          // If setting price content, override it
+          if (
+            arguments.length > 0 &&
+            typeof value === "string" &&
+            (value.includes("£") || value.includes("$")) &&
+            (this.hasClass("product-price--original") ||
+              this.attr("data-js-product-price-original") !== undefined)
+          ) {
+            const checkedRadio = document.querySelector(
+              'input[name="product-pack size-template--19920240836865__main"]:checked'
+            );
+            if (checkedRadio && packPrices[checkedRadio.value]) {
+              return originalHtml.call(this, packPrices[checkedRadio.value]);
+            }
+          }
+          return originalHtml.apply(this, arguments);
+        };
+
+        window.jQuery.fn.text = function (value) {
+          if (
+            arguments.length > 0 &&
+            typeof value === "string" &&
+            (value.includes("£") || value.includes("$")) &&
+            (this.hasClass("product-price--original") ||
+              this.attr("data-js-product-price-original") !== undefined)
+          ) {
+            const checkedRadio = document.querySelector(
+              'input[name="product-pack size-template--19920240836865__main"]:checked'
+            );
+            if (checkedRadio && packPrices[checkedRadio.value]) {
+              return originalText.call(this, packPrices[checkedRadio.value]);
+            }
+          }
+          return originalText.apply(this, arguments);
+        };
+      }
+    }
+
+    // Main function
+    function setupPriceOverride() {
+      const packRadios = document.querySelectorAll(
+        'input[name="product-pack size-template--19920240836865__main"]'
+      );
+
+      if (packRadios.length === 0) {
+        console.warn("Pack size radio buttons not found, retrying...");
+        setTimeout(setupPriceOverride, 1000);
+        return;
+      }
+
+      // Set up event listeners
+      packRadios.forEach((radio) => {
+        radio.addEventListener("change", function () {
+          if (this.checked) {
+            aggressivelySetPrice(this.value);
+          }
+        });
+
+        // Also listen for click events
+        radio.addEventListener("click", function () {
+          setTimeout(() => {
+            if (this.checked) {
+              aggressivelySetPrice(this.value);
+            }
+          }, 50);
+        });
+      });
+
+      // Set initial price
+      const checkedRadio = document.querySelector(
+        'input[name="product-pack size-template--19920240836865__main"]:checked'
+      );
+      if (checkedRadio) {
+        aggressivelySetPrice(checkedRadio.value);
+      }
+
+      // Block other price changes
+      blockPriceChanges();
+
+      // Continuous monitoring - changed to 500ms
+      setInterval(() => {
+        const currentCheckedRadio = document.querySelector(
+          'input[name="product-pack size-template--19920240836865__main"]:checked'
+        );
+        if (currentCheckedRadio && packPrices[currentCheckedRadio.value]) {
+          forcePrice(packPrices[currentCheckedRadio.value]);
+        }
+
+        // Always ensure compare price stays at £102.00
+        const comparePrice = document.querySelector(".product-price--compare");
+        if (comparePrice && comparePrice.textContent !== "£102.00") {
+          comparePrice.textContent = "£102.00";
+          comparePrice.innerHTML = "£102.00";
+          comparePrice.setAttribute("data-original-price", "£102.00");
+          comparePrice.style.setProperty(
+            "--custom-price",
+            '"£102.00"',
+            "important"
+          );
+        }
+      }, 500);
+
+      console.log(
+        "Aggressive price override system initialized (500ms intervals)"
+      );
+    }
+
+    // Initialize immediately and with delays
+    setupPriceOverride();
+    setTimeout(setupPriceOverride, 500);
+    setTimeout(setupPriceOverride, 1000);
+    setTimeout(setupPriceOverride, 2000);
 
     // Initialize when DOM is ready
     if (document.readyState === "loading") {
